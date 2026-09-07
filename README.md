@@ -7,13 +7,7 @@ shipment. Built as a full‑stack **Next.js 16 (App Router) + MongoDB** app with
 its own session auth, role‑based access control, and a forward‑only shipment
 state machine enforced on the server.
 
-<!--
-  Screenshots make this page. Drop three images in docs/ and uncomment:
-
-  ![Dashboard — package list with search, status filter and summary counts](docs/dashboard.png)
-  ![Package detail — tracking timeline, live simulation, exception panel](docs/package-detail.png)
-  ![Login — role-based demo accounts](docs/login.png)
--->
+![Courier Ops dashboard — the package list with operational summary tiles (total, per status, overdue, needs‑attention), search and filters, and per‑row status + delivery‑SLA badges](docs/dashboard.png)
 
 ---
 
@@ -70,6 +64,40 @@ In transit → Out for delivery → Delivered`, one step at a time, never
   spread of 18 packages across every status — with full timelines and a few
   exceptions — from a **seeded PRNG** (`mulberry32`), so the demo looks the same
   every run.
+
+---
+
+## A walk through the screens
+
+### Package detail — status, SLA, timeline, activity log
+
+The detail page pulls a shipment's whole story into one view: a status strip
+with the **derived delivery deadline** (“Expected delivery … · 18h left”), the
+exception banner, the customer‑facing **tracking timeline**, and an internal
+**activity log** that merges status changes and exception events into one
+filterable feed with who did what. Dispatchers also get an **Edit** button here
+while the package is still editable, plus the live tracking simulation.
+
+![Package detail page — header with status and “Due soon” SLA badge and an Edit button; a status strip showing last location, last update and the expected‑delivery deadline; a needs‑attention banner; the tracking history timeline; and an Activity log card with a kind filter listing “Marked Picked up”, “Exception flagged”, and “Package registered” with actors and timestamps](docs/package-detail.png)
+
+### Public tracking — `/track/[trackingId]`, no sign‑in
+
+A separate, redacted view for recipients: status, ETA, and scan history only —
+no sender, receiver, address, phone, or staff names. It's served by its own
+`serializePublicTracking()` DTO and allow‑listed in `proxy.ts`.
+
+![Public tracking page for CX100007919 — a “Delivered” badge with the delivery date, and a tracking‑history timeline of five scans from Registered in Seattle to Delivered in Phoenix, with no customer or staff details shown](docs/public-tracking.png)
+
+### Create and edit a package (dispatcher only)
+
+Creating a package assigns the tracking ID and opening scan server‑side. Editing
+shipment details is allowed **only while the package is `Pending` or `Picked
+up`** — the API returns `409` afterwards and the UI hides the button. Both forms
+validate with Zod and render field‑level errors inline.
+
+| Create                                                                                                                                       | Edit (before pickup)                                                                                                                                                                                        |
+| -------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ![Create a package form — sender, receiver, delivery address, optional phone, weight, and a starting‑status select](docs/create-package.png) | ![Edit package form for CX100134623, pre‑filled with the current sender, receiver, address, phone and weight, noting that details can be edited until the package leaves the origin](docs/edit-package.png) |
 
 ---
 
