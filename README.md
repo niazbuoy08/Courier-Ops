@@ -69,6 +69,16 @@ In transit → Out for delivery → Delivered`, one step at a time, never
 
 ## A walk through the screens
 
+### Sign in
+
+Email + password through a **Server Action** — bcrypt verify, a stateless JWT
+dropped in an `httpOnly` cookie, then a redirect back to wherever you were
+headed. Unknown emails still run a bcrypt compare so login timing can't be used
+to enumerate accounts. The split panel also links straight to the public
+tracking page for people who only want a status.
+
+![Courier Ops sign-in page — a dark brand panel reading “Track every shipment from pickup to doorstep” beside a Sign in card with email and password fields, and a “Track without signing in” link below it](docs/login.png)
+
 ### Package detail — status, SLA, timeline, activity log
 
 The detail page pulls a shipment's whole story into one view: a status strip
