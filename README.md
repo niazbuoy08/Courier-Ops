@@ -71,38 +71,7 @@ state machine enforced on the server.
 
 ## Architecture
 
-```
-Browser
-  │  fetch() via lib/api-client.ts  (one place; JSON + error shaping + base URL)
-  ▼
-proxy.ts ......... redirects signed-out users to /login (pages only; APIs self-authorize)
-  ▼
-app/api/packages/**/route.ts
-  ├─ requireUser() / requireWriter() .... session + role guard
-  ├─ Zod schema ......................... parse & shape 400s
-  ├─ lib/db.ts .......................... singleton Mongoose connection (survives HMR)
-  ├─ models/ ............................ Package (+ embedded StatusEvent, Exception), User
-  └─ lib/serialize.ts .................. Mongoose docs → JSON DTOs (ObjectId→id, Date→ISO, drop internals)
-```
-
-**Some decisions worth calling out**
-
-- **Single connection across hot reloads.** `lib/db.ts` stashes the Mongoose
-  connection on `globalThis`; without it, Turbopack's HMR opens a fresh
-  connection per edit and exhausts the Atlas pool in seconds.
-- **`proxy.ts` guards pages; routes guard themselves.** Page navigations get a
-  redirect to `/login`; API routes return JSON `401/403` so the client can react
-  without following an HTML redirect.
-- **A serialization layer.** Handlers never return raw Mongoose documents. One
-  module maps `_id → id`, `Date → ISO string`, sorts the timeline oldest‑first,
-  and drops `__v` and the actor's email — so the wire shape is a deliberate DTO,
-  not a leak of the schema.
-- **Auditing derived from the session.** "Who changed this" is read from the
-  verified session on the server and never accepted from the client.
-- **Client data hooks with derived loading.** `usePackages` / `usePackage`
-  key each result to its query; "loading" is *derived* from the stored key not
-  matching the current query rather than set imperatively, which keeps effects
-  free of synchronous state churn and makes stale responses impossible to render.
+![Request flow from the browser through the api-client, proxy auth redirect, and the route handler pipeline (guards → Zod → db → models → serialize) to MongoDB](docs/architecture.png)
 
 ---
 
