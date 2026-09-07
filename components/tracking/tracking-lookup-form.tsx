@@ -4,10 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  TRACKING_ID_PATTERN,
-  normalizeTrackingId,
-} from "@/lib/public-tracking";
+import { TRACKING_ID_PATTERN, normalizeTrackingId } from "@/lib/tracking-id";
 
 export function TrackingLookupForm({
   initialValue = "",

@@ -4,7 +4,8 @@ import { ArrowLeft, Package } from "lucide-react";
 import { StatusBadge } from "@/components/status-badge";
 import { TrackingTimeline } from "@/components/packages/tracking-timeline";
 import { TrackingLookupForm } from "@/components/tracking/tracking-lookup-form";
-import { getPublicTracking, normalizeTrackingId } from "@/lib/public-tracking";
+import { getPublicTracking } from "@/lib/public-tracking";
+import { normalizeTrackingId } from "@/lib/tracking-id";
 import { assessSla } from "@/lib/sla";
 import { formatDateTime } from "@/lib/format";
 

@@ -1,14 +1,8 @@
 import { connectToDatabase } from "@/lib/db";
 import { PackageModel } from "@/models/package";
 import { serializePublicTracking, type RawPackage } from "@/lib/serialize";
+import { TRACKING_ID_PATTERN, normalizeTrackingId } from "@/lib/tracking-id";
 import type { PublicTracking } from "@/types/package";
-
-/** `CX` followed by 9 digits. */
-export const TRACKING_ID_PATTERN = /^CX\d{9}$/;
-
-export function normalizeTrackingId(input: string): string {
-  return input.trim().toUpperCase();
-}
 
 /**
  * Looks up a package by tracking number and returns the redacted public view,
