@@ -2,12 +2,19 @@ import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE_NAME, verifySessionToken } from "@/lib/auth/token";
 
 /** Pages reachable without a session. */
-const PUBLIC_PATHS = new Set(["/login"]);
+function isPublicPath(pathname: string): boolean {
+  return (
+    pathname === "/login" ||
+    pathname === "/track" ||
+    pathname.startsWith("/track/")
+  );
+}
 
 /**
  * Runs on every page navigation (API routes are excluded — they authorize
  * themselves and return JSON 401/403). Redirects signed-out users to /login and
- * signed-in users away from /login.
+ * signed-in users away from /login. The public tracking pages under /track are
+ * reachable either way.
  */
 export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
@@ -15,7 +22,7 @@ export async function proxy(request: NextRequest) {
   const token = request.cookies.get(SESSION_COOKIE_NAME)?.value;
   const session = token ? await verifySessionToken(token) : null;
 
-  if (!session && !PUBLIC_PATHS.has(pathname)) {
+  if (!session && !isPublicPath(pathname)) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("callbackUrl", pathname + search);
     return NextResponse.redirect(loginUrl);

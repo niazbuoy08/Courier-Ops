@@ -5,6 +5,7 @@ import {
   createPackageSchema,
   flagExceptionSchema,
   listQuerySchema,
+  updatePackageSchema,
   zodDetails,
 } from "./validation";
 
@@ -72,6 +73,30 @@ describe("createPackageSchema", () => {
     expect(
       createPackageSchema.safeParse({ ...valid, status: "Shipped" }).success,
     ).toBe(false);
+  });
+});
+
+describe("updatePackageSchema", () => {
+  it("accepts a single changed field", () => {
+    expect(updatePackageSchema.safeParse({ weight: 3 }).success).toBe(true);
+  });
+
+  it("rejects an empty body", () => {
+    expect(updatePackageSchema.safeParse({}).success).toBe(false);
+  });
+
+  it("allows receiverPhone to be null (clearing it) but not garbage", () => {
+    expect(updatePackageSchema.safeParse({ receiverPhone: null }).success).toBe(
+      true,
+    );
+    expect(
+      updatePackageSchema.safeParse({ receiverPhone: "nope" }).success,
+    ).toBe(false);
+  });
+
+  it("still enforces field rules on the fields that are present", () => {
+    expect(updatePackageSchema.safeParse({ sender: "" }).success).toBe(false);
+    expect(updatePackageSchema.safeParse({ weight: -2 }).success).toBe(false);
   });
 });
 

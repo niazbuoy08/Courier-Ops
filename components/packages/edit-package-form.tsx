@@ -2,7 +2,7 @@
 
 import { useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ApiClientError, createPackage } from "@/lib/api-client";
+import { ApiClientError, updatePackage } from "@/lib/api-client";
 import { useSessionGuard } from "@/hooks/use-session-guard";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,36 +13,30 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { FormField } from "@/components/packages/form-field";
-import type { CreatePackageBody, PackageStatus } from "@/types/package";
+import type { Package, UpdatePackageBody } from "@/types/package";
 
-const INITIAL_STATUS_OPTIONS: PackageStatus[] = [
-  "Pending",
-  "Picked up",
-  "In transit",
+type FieldErrors = Partial<Record<keyof UpdatePackageBody | "weight", string>>;
+
+const FIELD_ORDER: (keyof FieldErrors)[] = [
+  "sender",
+  "receiver",
+  "receiverAddress",
+  "receiverPhone",
+  "weight",
 ];
 
-type FieldErrors = Partial<Record<keyof CreatePackageBody | "weight", string>>;
-
-export function CreatePackageForm() {
+export function EditPackageForm({ pkg }: { pkg: Package }) {
   const router = useRouter();
   const guard = useSessionGuard();
   const formId = useId();
   const formRef = useRef<HTMLFormElement>(null);
 
-  const [sender, setSender] = useState("");
-  const [receiver, setReceiver] = useState("");
-  const [receiverAddress, setReceiverAddress] = useState("");
-  const [receiverPhone, setReceiverPhone] = useState("");
-  const [weight, setWeight] = useState("");
-  const [status, setStatus] = useState<PackageStatus>("Pending");
+  const [sender, setSender] = useState(pkg.sender);
+  const [receiver, setReceiver] = useState(pkg.receiver);
+  const [receiverAddress, setReceiverAddress] = useState(pkg.receiverAddress);
+  const [receiverPhone, setReceiverPhone] = useState(pkg.receiverPhone ?? "");
+  const [weight, setWeight] = useState(String(pkg.weight));
 
   const [errors, setErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
@@ -51,6 +45,15 @@ export function CreatePackageForm() {
   const fieldId = (name: string) => `${formId}-${name}`;
   const describedBy = (name: keyof FieldErrors) =>
     errors[name] ? fieldId(`${name}-error`) : undefined;
+
+  function focusFirstError(current: FieldErrors) {
+    const first = FIELD_ORDER.find((name) => current[name]);
+    if (first) {
+      formRef.current
+        ?.querySelector<HTMLElement>(`#${CSS.escape(fieldId(first))}`)
+        ?.focus();
+    }
+  }
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -71,19 +74,21 @@ export function CreatePackageForm() {
       return;
     }
 
-    const body: CreatePackageBody = {
+    const trimmedPhone = receiverPhone.trim();
+    const body: UpdatePackageBody = {
       sender: sender.trim(),
       receiver: receiver.trim(),
       receiverAddress: receiverAddress.trim(),
-      ...(receiverPhone.trim() ? { receiverPhone: receiverPhone.trim() } : {}),
+      // An empty field clears a stored phone number.
+      receiverPhone: trimmedPhone ? trimmedPhone : null,
       weight: weightValue,
-      status,
     };
 
     setSubmitting(true);
     try {
-      const created = await createPackage(body);
-      router.push(`/package/${created.id}?created=1`);
+      await updatePackage(pkg.id, body);
+      router.push(`/package/${pkg.id}`);
+      router.refresh();
     } catch (error) {
       if (guard(error)) return;
       if (error instanceof ApiClientError && error.details) {
@@ -96,35 +101,19 @@ export function CreatePackageForm() {
       } else if (error instanceof ApiClientError) {
         setFormError(error.message);
       } else {
-        setFormError("We couldn't create the package. Please try again.");
+        setFormError("We couldn't save your changes. Please try again.");
       }
       setSubmitting(false);
-    }
-  }
-
-  function focusFirstError(current: FieldErrors) {
-    const order: (keyof FieldErrors)[] = [
-      "sender",
-      "receiver",
-      "receiverAddress",
-      "receiverPhone",
-      "weight",
-    ];
-    const first = order.find((name) => current[name]);
-    if (first) {
-      formRef.current
-        ?.querySelector<HTMLElement>(`#${CSS.escape(fieldId(first))}`)
-        ?.focus();
     }
   }
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>New package</CardTitle>
+        <CardTitle>Edit package</CardTitle>
         <CardDescription>
-          Register a package. A tracking ID and the opening tracking event are
-          added automatically.
+          <span className="font-mono">{pkg.trackingId}</span> · details can be
+          edited until the package leaves the origin.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -157,8 +146,6 @@ export function CreatePackageForm() {
               aria-describedby={describedBy("sender")}
               autoComplete="off"
               required
-              // Form-filler extensions mutate inputs before hydration.
-              suppressHydrationWarning
             />
           </FormField>
 
@@ -176,7 +163,6 @@ export function CreatePackageForm() {
               aria-describedby={describedBy("receiver")}
               autoComplete="off"
               required
-              suppressHydrationWarning
             />
           </FormField>
 
@@ -194,7 +180,6 @@ export function CreatePackageForm() {
               aria-describedby={describedBy("receiverAddress")}
               autoComplete="off"
               required
-              suppressHydrationWarning
             />
           </FormField>
 
@@ -214,65 +199,38 @@ export function CreatePackageForm() {
               aria-invalid={Boolean(errors.receiverPhone)}
               aria-describedby={describedBy("receiverPhone")}
               autoComplete="off"
-              suppressHydrationWarning
             />
           </FormField>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <FormField
+          <FormField
+            id={fieldId("weight")}
+            label="Weight (kg)"
+            error={errors.weight}
+            errorId={fieldId("weight-error")}
+          >
+            <Input
               id={fieldId("weight")}
-              label="Weight (kg)"
-              error={errors.weight}
-              errorId={fieldId("weight-error")}
-            >
-              <Input
-                id={fieldId("weight")}
-                type="number"
-                inputMode="decimal"
-                min="0"
-                step="0.1"
-                value={weight}
-                onChange={(e) => setWeight(e.target.value)}
-                aria-invalid={Boolean(errors.weight)}
-                aria-describedby={describedBy("weight")}
-                required
-                suppressHydrationWarning
-              />
-            </FormField>
-
-            <div className="space-y-1">
-              <label
-                htmlFor={fieldId("status")}
-                className="text-sm font-medium"
-              >
-                Starting status
-              </label>
-              <Select
-                value={status}
-                onValueChange={(value) => setStatus(value as PackageStatus)}
-              >
-                <SelectTrigger id={fieldId("status")} className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {INITIAL_STATUS_OPTIONS.map((option) => (
-                    <SelectItem key={option} value={option}>
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+              type="number"
+              inputMode="decimal"
+              min="0"
+              step="0.1"
+              value={weight}
+              onChange={(e) => setWeight(e.target.value)}
+              aria-invalid={Boolean(errors.weight)}
+              aria-describedby={describedBy("weight")}
+              required
+              className="sm:max-w-40"
+            />
+          </FormField>
 
           <div className="flex gap-3">
             <Button type="submit" disabled={submitting}>
-              {submitting ? "Creating…" : "Create package"}
+              {submitting ? "Saving…" : "Save changes"}
             </Button>
             <Button
               type="button"
               variant="ghost"
-              onClick={() => router.push("/")}
+              onClick={() => router.push(`/package/${pkg.id}`)}
               disabled={submitting}
             >
               Cancel

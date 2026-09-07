@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   serializePackage,
+  serializePublicTracking,
   serializeSummary,
   type RawPackage,
   type RawPackageSummary,
@@ -145,5 +146,72 @@ describe("serializePackage", () => {
     ];
     serializePackage(rawPackage(events));
     expect(events[0].status).toBe("In transit");
+  });
+});
+
+describe("serializePublicTracking", () => {
+  function rawPackage(): RawPackage {
+    return {
+      ...rawSummary({
+        exception: {
+          reason: "Wrong address",
+          flaggedAt: new Date("2026-01-02T00:00:00.000Z"),
+          flaggedByName: "Dana",
+        },
+      }),
+      events: [
+        {
+          status: "Picked up",
+          location: "Picked up — Austin, TX",
+          timestamp: new Date("2026-01-01T06:00:00.000Z"),
+          updatedByName: "Dana",
+          updatedByRole: "dispatcher",
+        },
+        {
+          status: "Pending",
+          location: "Registered — Austin, TX",
+          timestamp: new Date("2026-01-01T00:00:00.000Z"),
+          updatedByName: "Dana",
+          updatedByRole: "dispatcher",
+        },
+      ],
+    };
+  }
+
+  it("exposes only status and scan history, sorted oldest-first", () => {
+    const dto = serializePublicTracking(rawPackage());
+    expect(dto).toEqual({
+      trackingId: "CX123456789",
+      status: "In transit",
+      createdAt: "2026-01-01T10:00:00.000Z",
+      updatedAt: "2026-01-02T10:00:00.000Z",
+      events: [
+        {
+          status: "Pending",
+          location: "Registered — Austin, TX",
+          timestamp: "2026-01-01T00:00:00.000Z",
+        },
+        {
+          status: "Picked up",
+          location: "Picked up — Austin, TX",
+          timestamp: "2026-01-01T06:00:00.000Z",
+        },
+      ],
+    });
+  });
+
+  it("leaks no sender, receiver, address, phone, exception or actor", () => {
+    const serialized = JSON.stringify(serializePublicTracking(rawPackage()));
+    for (const secret of [
+      "Acme",
+      "Maya Bennett",
+      "Maple Ave",
+      "555",
+      "Wrong address",
+      "Dana",
+      "dispatcher",
+    ]) {
+      expect(serialized).not.toContain(secret);
+    }
   });
 });

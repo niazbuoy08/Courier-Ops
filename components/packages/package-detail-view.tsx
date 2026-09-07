@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { MapPin, RotateCw } from "lucide-react";
+import { MapPin, Pencil, RotateCw } from "lucide-react";
+import { isEditableStatus } from "@/types/package";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { StatusBadge } from "@/components/status-badge";
 import { EmptyState } from "@/components/empty-state";
@@ -11,11 +12,14 @@ import { ErrorState } from "@/components/error-state";
 import { usePackage } from "@/hooks/use-package";
 import { PackageDetailSkeleton } from "@/components/packages/package-detail-skeleton";
 import { TrackingTimeline } from "@/components/packages/tracking-timeline";
+import { ActivityLog } from "@/components/packages/activity-log";
 import { PackageInfoCard } from "@/components/packages/package-info-card";
 import { LastLocationMap } from "@/components/packages/last-location-map";
 import { LiveSimulationPanel } from "@/components/packages/live-simulation-panel";
 import { ExceptionPanel } from "@/components/packages/exception-panel";
-import { formatRelativeTime } from "@/lib/format";
+import { SlaBadge } from "@/components/packages/sla-badge";
+import { assessSla } from "@/lib/sla";
+import { formatDateTime, formatRelativeTime } from "@/lib/format";
 
 export function PackageDetailView({
   id,
@@ -80,6 +84,12 @@ export function PackageDetailView({
 
   const pkg = state.data;
   const lastEvent = pkg.events.at(-1);
+  const deliveredAt = lastEvent?.timestamp ?? pkg.updatedAt;
+  const sla = assessSla({
+    status: pkg.status,
+    createdAt: pkg.createdAt,
+    deliveredAt,
+  });
 
   return (
     <div className="space-y-6">
@@ -109,6 +119,12 @@ export function PackageDetailView({
               {pkg.trackingId}
             </h1>
             <StatusBadge status={pkg.status} />
+            <SlaBadge
+              status={pkg.status}
+              createdAt={pkg.createdAt}
+              deliveredAt={deliveredAt}
+              showSettled
+            />
           </div>
           <p className="text-muted-foreground text-sm">
             To {pkg.receiver} · from {pkg.sender}
@@ -118,6 +134,15 @@ export function PackageDetailView({
           <span className="text-muted-foreground text-xs" aria-live="polite">
             {isRevalidating ? "Updating…" : ""}
           </span>
+          {canWrite && isEditableStatus(pkg.status) ? (
+            <Link
+              href={`/package/${pkg.id}/edit`}
+              className={buttonVariants({ variant: "outline", size: "sm" })}
+            >
+              <Pencil aria-hidden />
+              Edit
+            </Link>
+          ) : null}
           <Button
             variant="outline"
             size="sm"
@@ -134,7 +159,7 @@ export function PackageDetailView({
       </div>
 
       {/* Status strip — the "what's happening right now" summary */}
-      <div className="border-border grid gap-3 rounded-lg border p-4 sm:grid-cols-3">
+      <div className="border-border grid gap-3 rounded-lg border p-4 sm:grid-cols-2 lg:grid-cols-4">
         <div>
           <p className="text-muted-foreground text-xs font-medium">
             Current status
@@ -169,13 +194,44 @@ export function PackageDetailView({
             ) : null}
           </p>
         </div>
+        <div>
+          <p className="text-muted-foreground text-xs font-medium">
+            {pkg.status === "Delivered" ? "Delivery SLA" : "Expected delivery"}
+          </p>
+          <p className="mt-1 text-sm">
+            {pkg.status === "Delivered" ? (
+              <SlaBadge
+                status={pkg.status}
+                createdAt={pkg.createdAt}
+                deliveredAt={deliveredAt}
+                showSettled
+              />
+            ) : (
+              <>
+                <span className="tabular-nums">
+                  {formatDateTime(sla.dueAt)}
+                </span>
+                {sla.state === "at-risk" || sla.state === "breached" ? (
+                  <span className="text-muted-foreground">
+                    {" "}
+                    ·{" "}
+                    {sla.hoursRemaining >= 0
+                      ? `${sla.hoursRemaining}h left`
+                      : `${-sla.hoursRemaining}h overdue`}
+                  </span>
+                ) : null}
+              </>
+            )}
+          </p>
+        </div>
       </div>
 
       <ExceptionPanel pkg={pkg} canWrite={canWrite} onChange={refresh} />
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
+        <div className="space-y-6 lg:col-span-2">
           <TrackingTimeline events={pkg.events} />
+          <ActivityLog pkg={pkg} />
         </div>
         <div className="space-y-6">
           <PackageInfoCard pkg={pkg} />

@@ -9,6 +9,7 @@ import type {
   PackageStatus,
   PackageSummary,
   SortOrder,
+  UpdatePackageBody,
 } from "@/types/package";
 
 /**
@@ -81,6 +82,7 @@ export interface ListPackagesParams extends DemoControls {
   search?: string;
   status?: PackageStatus;
   exception?: boolean;
+  overdue?: boolean;
   sort?: SortOrder;
   page?: number;
   pageSize?: number;
@@ -106,6 +108,7 @@ export function listPackages(
     search: params.search,
     status: params.status,
     exception: params.exception ? "true" : undefined,
+    overdue: params.overdue ? "true" : undefined,
     sort: params.sort,
     page: params.page,
     pageSize: params.pageSize,
@@ -115,6 +118,24 @@ export function listPackages(
   return request<Paginated<PackageSummary>>(`/api/packages${query}`, {
     signal,
   });
+}
+
+/**
+ * URL for the CSV export of the current filtered list. This is a file download,
+ * so it's used as a link target / `window.location`, not fetched through
+ * `request()`.
+ */
+export function packagesExportUrl(
+  params: Omit<ListPackagesParams, "page" | "pageSize"> = {},
+): string {
+  const query = buildQuery({
+    search: params.search,
+    status: params.status,
+    exception: params.exception ? "true" : undefined,
+    overdue: params.overdue ? "true" : undefined,
+    sort: params.sort,
+  });
+  return `${BASE_URL}/api/packages/export${query}`;
 }
 
 export function getPackageStats(
@@ -139,6 +160,16 @@ export function getPackage(
 export function createPackage(body: CreatePackageBody): Promise<Package> {
   return request<Package>("/api/packages", {
     method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export function updatePackage(
+  id: string,
+  body: UpdatePackageBody,
+): Promise<Package> {
+  return request<Package>(`/api/packages/${encodeURIComponent(id)}`, {
+    method: "PATCH",
     body: JSON.stringify(body),
   });
 }

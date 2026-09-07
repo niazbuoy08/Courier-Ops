@@ -14,6 +14,7 @@ export interface PackagesQuery {
   search: string;
   status?: PackageStatus;
   exception: boolean;
+  overdue: boolean;
   sort: SortOrder;
   page: number;
   pageSize: number;
@@ -47,8 +48,16 @@ export function usePackages(query: PackagesQuery) {
 
   const retry = useCallback(() => setAttempt((value) => value + 1), []);
 
-  const { search, status, exception, sort, page, pageSize, simulateFailure } =
-    query;
+  const {
+    search,
+    status,
+    exception,
+    overdue,
+    sort,
+    page,
+    pageSize,
+    simulateFailure,
+  } = query;
 
   const queryKey = useMemo(
     () =>
@@ -56,13 +65,24 @@ export function usePackages(query: PackagesQuery) {
         search,
         status,
         exception,
+        overdue,
         sort,
         page,
         pageSize,
         simulateFailure,
         attempt,
       }),
-    [search, status, exception, sort, page, pageSize, simulateFailure, attempt],
+    [
+      search,
+      status,
+      exception,
+      overdue,
+      sort,
+      page,
+      pageSize,
+      simulateFailure,
+      attempt,
+    ],
   );
 
   useEffect(() => {
@@ -73,6 +93,7 @@ export function usePackages(query: PackagesQuery) {
         search,
         status,
         exception,
+        overdue,
         sort,
         page,
         pageSize,
@@ -98,6 +119,7 @@ export function usePackages(query: PackagesQuery) {
     search,
     status,
     exception,
+    overdue,
     sort,
     page,
     pageSize,

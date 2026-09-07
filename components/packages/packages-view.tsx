@@ -3,10 +3,11 @@
 import { useCallback } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Plus } from "lucide-react";
+import { Download, Plus } from "lucide-react";
 import { usePackages } from "@/hooks/use-packages";
 import { isPackageStatus } from "@/types/package";
 import type { PackageStatus, SortOrder } from "@/types/package";
+import { packagesExportUrl } from "@/lib/api-client";
 import { buttonVariants } from "@/components/ui/button";
 import { PackagesSummary } from "@/components/packages/packages-summary";
 import { PackagesToolbar } from "@/components/packages/packages-toolbar";
@@ -30,6 +31,7 @@ export function PackagesView({ canCreate }: { canCreate: boolean }) {
   const statusParam = searchParams.get("status");
   const status = isPackageStatus(statusParam) ? statusParam : undefined;
   const exception = searchParams.get("attention") === "1";
+  const overdue = searchParams.get("overdue") === "1";
   const sort: SortOrder =
     searchParams.get("sort") === "oldest" ? "oldest" : "newest";
   const page = Math.max(
@@ -59,7 +61,12 @@ export function PackagesView({ canCreate }: { canCreate: boolean }) {
   );
   const handleStatusChange = useCallback(
     (value?: PackageStatus) =>
-      setParams({ status: value ?? null, attention: null, page: null }),
+      setParams({
+        status: value ?? null,
+        attention: null,
+        overdue: null,
+        page: null,
+      }),
     [setParams],
   );
   const handleSortChange = useCallback(
@@ -77,6 +84,11 @@ export function PackagesView({ canCreate }: { canCreate: boolean }) {
       setParams({ attention: on ? "1" : null, status: null, page: null }),
     [setParams],
   );
+  const handleOverdueChange = useCallback(
+    (on: boolean) =>
+      setParams({ overdue: on ? "1" : null, status: null, page: null }),
+    [setParams],
+  );
   const toggleSimulateFailure = useCallback(
     (checked: boolean) => setParams({ simulateFailure: checked ? "1" : null }),
     [setParams],
@@ -86,13 +98,15 @@ export function PackagesView({ canCreate }: { canCreate: boolean }) {
     search,
     status,
     exception,
+    overdue,
     sort,
     page,
     pageSize: PAGE_SIZE,
     simulateFailure,
   });
 
-  const hasActiveFilters = search !== "" || status !== undefined || exception;
+  const hasActiveFilters =
+    search !== "" || status !== undefined || exception || overdue;
   const total = state.status === "success" ? state.data.total : 0;
 
   return (
@@ -101,8 +115,10 @@ export function PackagesView({ canCreate }: { canCreate: boolean }) {
         refreshSignal={total}
         activeStatus={status}
         activeException={exception}
+        activeOverdue={overdue}
         onStatusSelect={handleStatusChange}
         onExceptionSelect={handleExceptionChange}
+        onOverdueSelect={handleOverdueChange}
       />
 
       <PackagesToolbar
@@ -116,17 +132,33 @@ export function PackagesView({ canCreate }: { canCreate: boolean }) {
         onExceptionsOnlyChange={handleExceptionChange}
       />
 
-      <label className="text-muted-foreground flex w-fit items-center gap-2 text-xs">
-        <input
-          type="checkbox"
-          className="accent-primary focus-visible:ring-ring size-3.5 rounded-sm focus-visible:ring-2 focus-visible:outline-none"
-          checked={simulateFailure}
-          onChange={(event) => toggleSimulateFailure(event.target.checked)}
-          // Form-filler extensions add `fdprocessedid` before React hydrates.
-          suppressHydrationWarning
-        />
-        Simulate a failed request (demo)
-      </label>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <label className="text-muted-foreground flex w-fit items-center gap-2 text-xs">
+          <input
+            type="checkbox"
+            className="accent-primary focus-visible:ring-ring size-3.5 rounded-sm focus-visible:ring-2 focus-visible:outline-none"
+            checked={simulateFailure}
+            onChange={(event) => toggleSimulateFailure(event.target.checked)}
+            // Form-filler extensions add `fdprocessedid` before React hydrates.
+            suppressHydrationWarning
+          />
+          Simulate a failed request (demo)
+        </label>
+
+        <a
+          href={packagesExportUrl({
+            search,
+            status,
+            exception,
+            overdue,
+            sort,
+          })}
+          className={buttonVariants({ variant: "outline", size: "sm" })}
+        >
+          <Download aria-hidden />
+          Export CSV
+        </a>
+      </div>
 
       <p className="sr-only" role="status">
         {state.status === "loading"

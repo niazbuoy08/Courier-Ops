@@ -3,6 +3,7 @@ import {
   PACKAGE_STATUSES,
   PACKAGE_STATUS_FLOW,
   canTransition,
+  isEditableStatus,
   isExceptionReason,
   isPackageStatus,
   nextStatusInFlow,
@@ -89,5 +90,16 @@ describe("nextStatusInFlow", () => {
 
   it("routes a Delayed package back to In transit", () => {
     expect(nextStatusInFlow("Delayed")).toBe("In transit");
+  });
+});
+
+describe("isEditableStatus", () => {
+  it("allows edits only while the package is still at the origin", () => {
+    expect(isEditableStatus("Pending")).toBe(true);
+    expect(isEditableStatus("Picked up")).toBe(true);
+    expect(isEditableStatus("In transit")).toBe(false);
+    expect(isEditableStatus("Out for delivery")).toBe(false);
+    expect(isEditableStatus("Delivered")).toBe(false);
+    expect(isEditableStatus("Delayed")).toBe(false);
   });
 });

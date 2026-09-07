@@ -48,6 +48,33 @@ export const createPackageSchema = z.object({
 
 export type CreatePackageInput = z.infer<typeof createPackageSchema>;
 
+/**
+ * Body for `PATCH /api/packages/[id]` — editing shipment details before the
+ * package leaves the origin. Every field is optional; at least one must be
+ * present. `receiverPhone: null` clears a stored phone number.
+ */
+export const updatePackageSchema = z
+  .object({
+    sender: z.string().trim().min(1, "Sender name is required.").max(120),
+    receiver: z.string().trim().min(1, "Receiver name is required.").max(120),
+    receiverAddress: z
+      .string()
+      .trim()
+      .min(1, "Delivery address is required.")
+      .max(200),
+    receiverPhone: phoneField.nullable(),
+    weight: z
+      .number({ message: "Weight must be a number." })
+      .positive("Weight must be greater than 0.")
+      .max(1000, "Weight looks too large (max 1000 kg)."),
+  })
+  .partial()
+  .refine((data) => Object.keys(data).length > 0, {
+    message: "Change at least one field.",
+  });
+
+export type UpdatePackageInput = z.infer<typeof updatePackageSchema>;
+
 /** Body for `PATCH /api/packages/[id]/status`. */
 export const addStatusEventSchema = z.object({
   status: statusEnum,
@@ -79,6 +106,8 @@ export const listQuerySchema = z.object({
   search: z.string().trim().max(120).catch("").default(""),
   status: statusEnum.optional().catch(undefined),
   exception: z.literal("true").optional().catch(undefined),
+  /** Past the delivery SLA deadline and not yet delivered. */
+  overdue: z.literal("true").optional().catch(undefined),
   page: z.coerce.number().int().min(1).catch(1).default(1),
   pageSize: z.coerce.number().int().min(1).max(50).catch(10).default(10),
   sort: z.enum(["newest", "oldest"]).catch("newest").default("newest"),

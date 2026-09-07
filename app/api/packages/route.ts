@@ -13,19 +13,19 @@ import {
 } from "@/lib/validation";
 import {
   applyDemoControls,
-  escapeRegExp,
   generateTrackingId,
   isDuplicateKeyError,
   jsonError,
 } from "@/lib/api-helpers";
+import { buildPackageFilter } from "@/lib/package-query";
 import { requireUser, requireWriter } from "@/lib/auth/guard";
 import type { Paginated, PackageSummary } from "@/types/package";
 
 /**
  * GET /api/packages
  * Any signed-in user. Query params: search (tracking ID / sender / receiver /
- * phone), status, exception=true, page, pageSize, sort=newest|oldest.
- * Plus demo hooks: ?fail=true, ?delay=<ms>
+ * phone), status, exception=true, overdue=true, page, pageSize,
+ * sort=newest|oldest. Plus demo hooks: ?fail=true, ?delay=<ms>
  */
 export async function GET(request: Request) {
   const auth = await requireUser();
@@ -40,18 +40,7 @@ export async function GET(request: Request) {
   try {
     await connectToDatabase();
 
-    const filter: Record<string, unknown> = {};
-    if (query.search) {
-      const rx = new RegExp(escapeRegExp(query.search), "i");
-      filter.$or = [
-        { trackingId: rx },
-        { sender: rx },
-        { receiver: rx },
-        { receiverPhone: rx },
-      ];
-    }
-    if (query.status) filter.status = query.status;
-    if (query.exception === "true") filter.exception = { $ne: null };
+    const filter = buildPackageFilter(query);
 
     const skip = (query.page - 1) * query.pageSize;
     const sortDir = query.sort === "oldest" ? 1 : -1;

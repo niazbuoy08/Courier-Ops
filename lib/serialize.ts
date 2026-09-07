@@ -4,6 +4,7 @@ import type {
   PackageException,
   PackageStatus,
   PackageSummary,
+  PublicTracking,
   StatusEvent,
   UpdatedBy,
 } from "@/types/package";
@@ -106,5 +107,25 @@ export function serializePackage(doc: RawPackage): Package {
     events: [...doc.events]
       .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
       .map(serializeEvent),
+  };
+}
+
+/**
+ * Redacted view for the public tracking page: status and scan history only,
+ * with none of the sender/receiver/actor detail the internal DTOs carry.
+ */
+export function serializePublicTracking(doc: RawPackage): PublicTracking {
+  return {
+    trackingId: doc.trackingId,
+    status: doc.status,
+    createdAt: doc.createdAt.toISOString(),
+    updatedAt: doc.updatedAt.toISOString(),
+    events: [...doc.events]
+      .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime())
+      .map((event) => ({
+        status: event.status,
+        location: event.location,
+        timestamp: event.timestamp.toISOString(),
+      })),
   };
 }

@@ -129,6 +129,28 @@ export interface Package {
 /** Package shape returned by the list endpoint — no event history. */
 export type PackageSummary = Omit<Package, "events">;
 
+/** One scan on the public tracking page — no actor, no internal detail. */
+export interface PublicTrackingEvent {
+  status: PackageStatus;
+  location: string;
+  /** ISO 8601 timestamp. */
+  timestamp: string;
+}
+
+/**
+ * What an unauthenticated visitor sees for a tracking number. Deliberately
+ * omits sender, receiver, address, phone, weight, exceptions and actor names.
+ */
+export interface PublicTracking {
+  trackingId: string;
+  status: PackageStatus;
+  events: PublicTrackingEvent[];
+  /** ISO 8601. */
+  createdAt: string;
+  /** ISO 8601. */
+  updatedAt: string;
+}
+
 export interface Paginated<T> {
   data: T[];
   page: number;
@@ -142,6 +164,8 @@ export interface PackageStats {
   total: number;
   byStatus: Record<PackageStatus, number>;
   exceptions: number;
+  /** Not delivered and past the delivery SLA deadline. */
+  overdue: number;
 }
 
 export interface ApiError {
@@ -161,6 +185,29 @@ export interface CreatePackageBody {
   weight: number;
   status?: PackageStatus;
   originLocation?: string;
+}
+
+/** Request body for `PATCH /api/packages/[id]` — editing details before pickup. */
+export interface UpdatePackageBody {
+  sender?: string;
+  receiver?: string;
+  receiverAddress?: string;
+  /** `null` clears the stored phone number. */
+  receiverPhone?: string | null;
+  weight?: number;
+}
+
+/**
+ * Shipment details can only be edited while the package is still at the origin.
+ * Once it's `In transit` or later, the record is locked.
+ */
+export const EDITABLE_STATUSES = [
+  "Pending",
+  "Picked up",
+] as const satisfies readonly PackageStatus[];
+
+export function isEditableStatus(status: PackageStatus): boolean {
+  return (EDITABLE_STATUSES as readonly PackageStatus[]).includes(status);
 }
 
 /** Request body for `PATCH /api/packages/[id]/status`. */

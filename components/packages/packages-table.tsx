@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/table";
 import { StatusBadge } from "@/components/status-badge";
 import { ExceptionIndicator } from "@/components/packages/exception-indicator";
+import { SlaBadge } from "@/components/packages/sla-badge";
 import { formatDate, formatDateTime } from "@/lib/format";
 import type { PackageSummary } from "@/types/package";
 
@@ -58,6 +59,11 @@ export function PackagesTable({ packages }: { packages: PackageSummary[] }) {
               <TableCell>
                 <div className="flex flex-col items-start gap-1">
                   <StatusBadge status={pkg.status} />
+                  <SlaBadge
+                    status={pkg.status}
+                    createdAt={pkg.createdAt}
+                    deliveredAt={pkg.updatedAt}
+                  />
                   {pkg.exception ? (
                     <ExceptionIndicator exception={pkg.exception} />
                   ) : null}

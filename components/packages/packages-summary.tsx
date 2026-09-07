@@ -17,16 +17,20 @@ export interface PackagesSummaryProps {
   refreshSignal: number;
   activeStatus?: PackageStatus;
   activeException: boolean;
+  activeOverdue: boolean;
   onStatusSelect: (status?: PackageStatus) => void;
   onExceptionSelect: (on: boolean) => void;
+  onOverdueSelect: (on: boolean) => void;
 }
 
 export function PackagesSummary({
   refreshSignal,
   activeStatus,
   activeException,
+  activeOverdue,
   onStatusSelect,
   onExceptionSelect,
+  onOverdueSelect,
 }: PackagesSummaryProps) {
   const state = usePackageStats(refreshSignal);
 
@@ -42,11 +46,13 @@ export function PackagesSummary({
   const data = state.status === "success" ? state.data : null;
   const loading = state.status === "loading";
 
+  const filtersActive = activeException || activeOverdue;
+
   const statusTiles: Tile[] = PACKAGE_STATUS_FLOW.map((status) => ({
     key: status,
     label: status,
     value: data?.byStatus[status] ?? 0,
-    active: activeStatus === status && !activeException,
+    active: activeStatus === status && !filtersActive,
     onSelect: () =>
       onStatusSelect(activeStatus === status ? undefined : status),
   }));
@@ -56,7 +62,7 @@ export function PackagesSummary({
       key: "Delayed",
       label: "Delayed",
       value: data.byStatus.Delayed,
-      active: activeStatus === "Delayed" && !activeException,
+      active: activeStatus === "Delayed" && !filtersActive,
       onSelect: () =>
         onStatusSelect(activeStatus === "Delayed" ? undefined : "Delayed"),
     });
@@ -64,6 +70,14 @@ export function PackagesSummary({
 
   const tiles: Tile[] = [
     ...statusTiles,
+    {
+      key: "overdue",
+      label: "Overdue",
+      value: data?.overdue ?? 0,
+      active: activeOverdue,
+      onSelect: () => onOverdueSelect(!activeOverdue),
+      tone: "attention",
+    },
     {
       key: "exceptions",
       label: "Needs attention",

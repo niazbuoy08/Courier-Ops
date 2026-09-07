@@ -1,6 +1,7 @@
 import { connectToDatabase } from "@/lib/db";
 import { PackageModel } from "@/models/package";
 import { applyDemoControls, jsonError } from "@/lib/api-helpers";
+import { overdueCutoff } from "@/lib/package-query";
 import { requireUser } from "@/lib/auth/guard";
 import { PACKAGE_STATUSES, type PackageStats } from "@/types/package";
 
@@ -19,12 +20,16 @@ export async function GET(request: Request) {
   try {
     await connectToDatabase();
 
-    const [grouped, total, exceptions] = await Promise.all([
+    const [grouped, total, exceptions, overdue] = await Promise.all([
       PackageModel.aggregate<{ _id: string; count: number }>([
         { $group: { _id: "$status", count: { $sum: 1 } } },
       ]),
       PackageModel.countDocuments({}),
       PackageModel.countDocuments({ exception: { $ne: null } }),
+      PackageModel.countDocuments({
+        status: { $ne: "Delivered" },
+        createdAt: { $lt: overdueCutoff() },
+      }),
     ]);
 
     const byStatus = Object.fromEntries(
@@ -36,7 +41,7 @@ export async function GET(request: Request) {
       }
     }
 
-    const body: PackageStats = { total, byStatus, exceptions };
+    const body: PackageStats = { total, byStatus, exceptions, overdue };
     return Response.json(body);
   } catch (error) {
     console.error("GET /api/packages/summary failed:", error);

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Package } from "lucide-react";
 import { getSession } from "@/lib/auth/session";
@@ -52,6 +53,16 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
             }
             notice={notice}
           />
+
+          <p className="text-muted-foreground text-center text-sm">
+            Just want to track a package?{" "}
+            <Link
+              href="/track"
+              className="text-foreground font-medium underline underline-offset-4"
+            >
+              Track without signing in
+            </Link>
+          </p>
         </div>
       </div>
     </div>
