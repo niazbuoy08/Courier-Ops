@@ -1,0 +1,15 @@
+# Build output & deps
+.next/
+node_modules/
+out/
+build/
+coverage/
+
+# Lockfiles & generated
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+next-env.d.ts
+
+# Editor / misc
+*.min.js
