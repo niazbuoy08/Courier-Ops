@@ -48,6 +48,9 @@ function Button({
   return (
     <ButtonPrimitive
       data-slot="button"
+      // Form-filler extensions add `fdprocessedid` to buttons before React
+      // hydrates, which otherwise trips a hydration mismatch warning.
+      suppressHydrationWarning
       className={cn(buttonVariants({ variant, size, className }))}
       {...props}
     />

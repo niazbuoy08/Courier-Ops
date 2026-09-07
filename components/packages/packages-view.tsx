@@ -122,6 +122,8 @@ export function PackagesView({ canCreate }: { canCreate: boolean }) {
           className="accent-primary focus-visible:ring-ring size-3.5 rounded-sm focus-visible:ring-2 focus-visible:outline-none"
           checked={simulateFailure}
           onChange={(event) => toggleSimulateFailure(event.target.checked)}
+          // Form-filler extensions add `fdprocessedid` before React hydrates.
+          suppressHydrationWarning
         />
         Simulate a failed request (demo)
       </label>

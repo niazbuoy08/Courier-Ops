@@ -14,6 +14,8 @@ export function UserBadge({ user }: { user: SessionUser }) {
       <form action={logoutAction}>
         <button
           type="submit"
+          // Form-filler extensions add `fdprocessedid` before React hydrates.
+          suppressHydrationWarning
           className="hover:bg-muted focus-visible:ring-ring inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium focus-visible:ring-2 focus-visible:outline-none"
         >
           <LogOut className="size-4" aria-hidden />

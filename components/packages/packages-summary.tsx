@@ -88,6 +88,8 @@ export function PackagesSummary({
           <button
             key={tile.key}
             type="button"
+            // Form-filler extensions add `fdprocessedid` before React hydrates.
+            suppressHydrationWarning
             aria-pressed={tile.active}
             aria-label={`Filter by ${tile.label}${
               loading

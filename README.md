@@ -28,7 +28,7 @@ state machine enforced on the server.
   can't take, and the API rejects them anyway (`403`) so the client is never
   trusted.
 - **Server‑authoritative state machine.** A package moves `Pending → Picked up →
-  In transit → Out for delivery → Delivered`, one step at a time, never
+In transit → Out for delivery → Delivered`, one step at a time, never
   backwards. Transitions are validated server‑side and applied as a
   **compare‑and‑swap** on the current status, so two concurrent updates can't
   skip or double‑advance a step.
@@ -57,15 +57,17 @@ state machine enforced on the server.
 
 ## Tech stack
 
-| Area          | Choices                                                              |
-| ------------- | ------------------------------------------------------------------- |
-| Framework     | Next.js 16.3 (App Router, Server Components, Server Actions), React 19 |
-| Language      | TypeScript (strict)                                                 |
-| Database      | MongoDB Atlas + Mongoose 8                                          |
-| Auth          | `jose` (JWT), `bcryptjs`, `httpOnly` cookie sessions, proxy‑level route guard |
-| Validation    | Zod (request bodies, query strings, server actions)                 |
-| UI            | Tailwind CSS v4, shadcn/ui + Base UI primitives, `lucide-react`, light/dark |
-| Tooling       | ESLint 9, Prettier, `tsx` for the seed script                       |
+| Area       | Choices                                                                       |
+| ---------- | ----------------------------------------------------------------------------- |
+| Framework  | Next.js 16.3 (App Router, Server Components, Server Actions), React 19        |
+| Language   | TypeScript (strict)                                                           |
+| Database   | MongoDB Atlas + Mongoose 8                                                    |
+| Auth       | `jose` (JWT), `bcryptjs`, `httpOnly` cookie sessions, proxy‑level route guard |
+| Validation | Zod (request bodies, query strings, server actions)                           |
+| UI         | Tailwind CSS v4, shadcn/ui + Base UI primitives, `lucide-react`, light/dark   |
+| Testing    | Vitest (unit + V8 coverage), 63 tests over the domain logic                   |
+| CI         | GitHub Actions — lint · typecheck · test · build on every push and PR         |
+| Tooling    | ESLint 9, Prettier, `tsx` for the seed script                                 |
 
 ---
 
@@ -79,15 +81,15 @@ state machine enforced on the server.
 
 **Package** (`models/package.ts`)
 
-| Field             | Notes                                                            |
-| ----------------- | -------------------------------------------------------------- |
-| `trackingId`      | `CX` + 9 digits, unique, server‑assigned                       |
-| `sender` / `receiver` / `receiverAddress` / `receiverPhone?` | contact + destination      |
-| `weight`          | kilograms                                                      |
-| `status`          | one of the 6 statuses; current position in the flow           |
-| `exception`       | `{ reason, note?, flaggedAt, flaggedBy }` or `null`           |
-| `events[]`        | embedded `StatusEvent` sub‑docs — the full tracking timeline   |
-| `createdAt` / `updatedAt` | timestamps                                            |
+| Field                                                        | Notes                                                        |
+| ------------------------------------------------------------ | ------------------------------------------------------------ |
+| `trackingId`                                                 | `CX` + 9 digits, unique, server‑assigned                     |
+| `sender` / `receiver` / `receiverAddress` / `receiverPhone?` | contact + destination                                        |
+| `weight`                                                     | kilograms                                                    |
+| `status`                                                     | one of the 6 statuses; current position in the flow          |
+| `exception`                                                  | `{ reason, note?, flaggedAt, flaggedBy }` or `null`          |
+| `events[]`                                                   | embedded `StatusEvent` sub‑docs — the full tracking timeline |
+| `createdAt` / `updatedAt`                                    | timestamps                                                   |
 
 Indexes: `{ status, createdAt }` (list + sort), `{ receiver }` (search),
 `{ "exception.reason" }` (needs‑attention filter), plus the unique `trackingId`.
@@ -101,14 +103,14 @@ serialized), `role`.
 
 All routes require a valid session. Writes require the `dispatcher` role.
 
-| Method & path                        | Role       | Purpose                                                   |
-| ------------------------------------ | ---------- | ------------------------------------------------------- |
+| Method & path                        | Role       | Purpose                                                               |
+| ------------------------------------ | ---------- | --------------------------------------------------------------------- |
 | `GET /api/packages`                  | any        | List with `search`, `status`, `exception`, `page`, `pageSize`, `sort` |
-| `POST /api/packages`                 | dispatcher | Create a package; server assigns the tracking ID + opening event |
-| `GET /api/packages/summary`          | any        | Dashboard counts (aggregation): total, by status, exceptions |
-| `GET /api/packages/[id]`             | any        | One package + full history; `id` is an ObjectId **or** a tracking ID |
-| `PATCH /api/packages/[id]/status`    | dispatcher | Append a scan and advance the status (validated transition, CAS) |
-| `PATCH /api/packages/[id]/exception` | dispatcher | Flag a package as needing attention, or clear it (`reason: null`) |
+| `POST /api/packages`                 | dispatcher | Create a package; server assigns the tracking ID + opening event      |
+| `GET /api/packages/summary`          | any        | Dashboard counts (aggregation): total, by status, exceptions          |
+| `GET /api/packages/[id]`             | any        | One package + full history; `id` is an ObjectId **or** a tracking ID  |
+| `PATCH /api/packages/[id]/status`    | dispatcher | Append a scan and advance the status (validated transition, CAS)      |
+| `PATCH /api/packages/[id]/exception` | dispatcher | Flag a package as needing attention, or clear it (`reason: null`)     |
 
 Read endpoints also accept `?fail=true` and `?delay=<ms>` (capped at 10 s) to
 exercise the error and loading states.
@@ -136,11 +138,11 @@ cp .env.example .env.local
 
 Fill in `.env.local`:
 
-| Variable                  | Required | Description                                                    |
-| ------------------------- | -------- | ------------------------------------------------------------ |
-| `MONGODB_URI`             | yes      | MongoDB connection string, including the database name        |
-| `AUTH_SECRET`             | yes      | Secret for signing session JWTs. Generate one with:<br>`node -e "console.log(require('crypto').randomBytes(33).toString('base64'))"` |
-| `NEXT_PUBLIC_API_BASE_URL`| no       | Absolute API base; leave blank to call the same origin        |
+| Variable                   | Required | Description                                                                                                                          |
+| -------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `MONGODB_URI`              | yes      | MongoDB connection string, including the database name                                                                               |
+| `AUTH_SECRET`              | yes      | Secret for signing session JWTs. Generate one with:<br>`node -e "console.log(require('crypto').randomBytes(33).toString('base64'))"` |
+| `NEXT_PUBLIC_API_BASE_URL` | no       | Absolute API base; leave blank to call the same origin                                                                               |
 
 ### 3. Seed the database
 
@@ -161,23 +163,61 @@ Open <http://localhost:3000>.
 
 ### Demo accounts
 
-| Role       | Email                     | Password      | Can do                                      |
-| ---------- | ------------------------- | ------------- | ----------------------------------------- |
+| Role       | Email                    | Password      | Can do                                               |
+| ---------- | ------------------------ | ------------- | ---------------------------------------------------- |
 | Dispatcher | `dispatcher@courier.dev` | `dispatch123` | Everything — create, advance status, flag exceptions |
-| Viewer     | `viewer@courier.dev`     | `viewer123`   | Read‑only                                   |
+| Viewer     | `viewer@courier.dev`     | `viewer123`   | Read‑only                                            |
 
 ---
 
 ## Scripts
 
-| Command                | What it does                                  |
-| ---------------------- | ------------------------------------------- |
-| `npm run dev`          | Start the dev server                         |
-| `npm run build`        | Production build                             |
-| `npm run start`        | Serve the production build                   |
-| `npm run seed`         | Reset + reseed the database                  |
-| `npm run lint`         | ESLint                                       |
-| `npm run format`       | Prettier write                               |
+| Command                 | What it does                              |
+| ----------------------- | ----------------------------------------- |
+| `npm run dev`           | Start the dev server                      |
+| `npm run build`         | Production build                          |
+| `npm run start`         | Serve the production build                |
+| `npm run seed`          | Reset + reseed the database               |
+| `npm test`              | Run the unit tests in watch mode          |
+| `npm run test:run`      | Run the unit tests once                   |
+| `npm run test:coverage` | Run the unit tests with a coverage report |
+| `npm run typecheck`     | `tsc --noEmit`                            |
+| `npm run lint`          | ESLint                                    |
+| `npm run format`        | Prettier write                            |
+
+---
+
+## Testing
+
+Unit tests run with **Vitest** in the Node environment and cover the pure domain
+logic — the parts where a bug is a real bug, not a re-render:
+
+- **The status state machine** (`types/package.ts`) — every legal forward step,
+  and that backwards moves, skips, no-ops, and post-`Delivered` moves are all
+  rejected.
+- **Validation** (`lib/validation.ts`) — each Zod schema's accept/reject cases,
+  and the lenient list-query fallbacks.
+- **Serialization** (`lib/serialize.ts`) — `_id → id`, `Date → ISO`, timeline
+  ordering, `updatedBy` mapping, and that the input isn't mutated.
+- **Auth primitives** — session-token sign/verify round-trip, tampered/expired/
+  wrong-secret tokens, bcrypt hash + verify, role checks.
+- **Helpers** — tracking-ID shape, regex escaping, relative-time formatting,
+  simulated scan locations, the demo `?fail` / `?delay` hooks.
+
+```bash
+npm run test:coverage
+```
+
+Coverage thresholds (90% lines / statements / functions, 85% branches) are
+enforced against these modules in CI. Infrastructure-bound code (`db.ts`, the
+`next/headers` guards, the browser API client) is intentionally left to the
+integration and E2E layers rather than held to a unit-coverage bar.
+
+## Continuous integration
+
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on every push and
+pull request to `main`: **install → lint → typecheck → test + coverage →
+production build**. The coverage report is uploaded as a build artifact.
 
 ---
 
@@ -199,19 +239,21 @@ lib/
   api-client.ts     the one place the frontend calls the backend
   serialize.ts      Mongoose docs → JSON DTOs
   validation.ts     Zod schemas
+  *.test.ts         colocated Vitest unit tests
 models/             Package, StatusEvent (embedded), User
 types/              shared domain types + the status-transition table
 scripts/seed.ts     reproducible demo data
 proxy.ts            page-level auth redirect (Next 16's middleware)
+.github/workflows/  CI pipeline
 ```
 
 ---
 
 ## Possible next steps
 
-- Automated tests — the transition logic, guards, and serializer are pure and
-  test‑friendly by design; a Playwright pass over the dispatcher/viewer flows
+- Integration tests for the route handlers (`mongodb-memory-server`) — the
+  `403` for a viewer write, the rejected backwards transition, the CAS conflict
+- E2E tests (Playwright) over the dispatcher and viewer flows
 - Optimistic UI on status advance instead of re‑fetch
 - Real map tiles + geocoding behind the current stylised location view
 - Audit log surfaced in the UI (the data is already captured per event)
-- CI: lint + typecheck + build on push

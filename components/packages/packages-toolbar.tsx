@@ -129,6 +129,8 @@ export function PackagesToolbar({
           className="accent-primary focus-visible:ring-ring size-4 rounded-sm focus-visible:ring-2 focus-visible:outline-none"
           checked={exceptionsOnly}
           onChange={(event) => onExceptionsOnlyChange(event.target.checked)}
+          // Form-filler extensions add `fdprocessedid` before React hydrates.
+          suppressHydrationWarning
         />
         Only show packages that need attention
       </label>

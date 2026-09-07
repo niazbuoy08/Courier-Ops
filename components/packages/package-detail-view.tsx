@@ -92,6 +92,8 @@ export function PackageDetailView({
           <button
             type="button"
             onClick={() => setShowCreated(false)}
+            // Form-filler extensions add `fdprocessedid` before React hydrates.
+            suppressHydrationWarning
             className="focus-visible:ring-ring rounded-sm text-xs font-medium underline focus-visible:ring-2 focus-visible:outline-none"
           >
             Dismiss
