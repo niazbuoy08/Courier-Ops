@@ -5,6 +5,9 @@ const nextConfig: NextConfig = {
   // server compiler. Keeping it external avoids "Can't resolve" edge cases and
   // keeps model registration a true singleton across route handlers.
   serverExternalPackages: ["mongoose"],
+
+  // Don't let `next dev` scaffold AGENTS.md / CLAUDE.md into the repo.
+  agentRules: false,
 };
 
 export default nextConfig;
