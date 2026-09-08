@@ -333,17 +333,3 @@ scripts/seed.ts     reproducible demo data
 proxy.ts            page-level auth redirect (Next 16's middleware)
 .github/workflows/  CI pipeline
 ```
-
----
-
-## Possible next steps
-
-- Integration tests for the route handlers (`mongodb-memory-server`) — the
-  `403` for a viewer write, the rejected backwards transition, the CAS conflict,
-  the edit‑after‑pickup `409`, the public‑DTO redaction
-- E2E tests (Playwright) over the dispatcher, viewer and public‑tracking flows
-- Persist an audit trail (cleared exceptions, edit diffs) instead of deriving
-  the activity log from current state
-- Per‑lane SLA targets instead of a single 72 h transit budget
-- Optimistic UI on status advance instead of re‑fetch
-- Real map tiles + geocoding behind the current stylised location view
